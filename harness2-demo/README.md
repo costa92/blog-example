@@ -29,6 +29,40 @@ cd blog-example/harness2-demo
 
 断言只覆盖 demo 的流程与计数，不代表真实模型的改进效果。真实基准（JobBench、LAB、WorkBuddy-Bench）需要 Vertex AI 等环境，见 Harness² 的 README。
 
+## 真实模型的自我进化案例
+
+`agent/` 目录让真实模型走一遍 Harness² 的 Propose–Probe–Compose 和经验库。Harness² 的 `run_domain` 原样调用，只替换两处模型调用：
+
+- 执行器 `LedgerAdapter.execute`：带着当前 harness 做对账任务，默认 `deepseek-flash`；
+- 编辑器 `LLMProposer.call`：读证据、改 `context/harness/`，并负责选择和经验提炼，默认 `deepseek-v4-pro`。
+
+两者都是只用标准库写的工具调用循环（列目录、读写文件、运行 Python），走 OpenAI 兼容接口。
+
+任务是同一领域的两个账本。基线 harness 的 `scripts/summarize.py` 会静默跳过解析失败的行，括号负数 `(20.10)` 和尾随负号 `15.00-` 都会被漏掉。标准答案只在 `report.py` 里用来核对，不进入任何 Agent 的上下文。
+
+```bash
+./run.sh                                  # 先准备 Harness² 环境
+export DEEPSEEK_API_KEY=sk-...
+./run_agent.sh                            # k=1，约 10–20 分钟
+```
+
+换模型用环境变量：`EXECUTOR_BASE_URL`、`EXECUTOR_MODEL`、`EXECUTOR_KEY_ENV`（存放 Key 的变量名），编辑器同理用 `EDITOR_*`。例如执行器换成智谱 GLM-5（这条组合未实测）：
+
+```bash
+EXECUTOR_BASE_URL=https://open.bigmodel.cn/api/paas/v4 EXECUTOR_MODEL=glm-5 \
+EXECUTOR_KEY_ENV=Z_AI_API_KEY ./run_agent.sh
+```
+
+模型输出有随机性，每次运行的改法、工具调用次数和 token 用量都会不同。编辑器每个会话最多 40 步，执行器最多 15 步。
+
+`python3 agent/report.py .work/agent-k1 --brief` 只看摘要。2026-10-19 的一次运行（k=1）结果：
+
+- 两个任务的参照执行就已答对：执行器发现脚本输出不对，自己写了解析代码绕过去；
+- 编辑器修好了 `scripts/summarize.py`，ledger-1 还加了 `ledger-reconcile` 技能并改了系统提示词；
+- ledger-2 的三个编辑会话共读取经验库文件 24 次，采纳的脚本与 ledger-1 的逐字节相同；
+- 工具调用次数：ledger-1 从 8 次变成 12 次，ledger-2 从 9 次变成 5 次；
+- 耗时约 19 分钟，花费约 1.7 元，编辑器输入 976,568 tokens，约为执行器的 11 倍。
+
 ## 清理
 
 ```bash
