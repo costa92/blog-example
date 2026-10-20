@@ -2,7 +2,7 @@
 
 复现谷歌开源的 [Harness²](https://github.com/google-research/harness2) 自带离线 demo，并对文章里的实测结论逐条做断言。demo 的编辑器和选择器是 Harness² 仓库里写死的脚本，不调用任何模型，不需要凭证。
 
-- 配套文章：谷歌开源 Harness²：不碰模型权重，GLM-5 一轮涨 11.5 分。
+- 配套文章：谷歌 Harness²：不改权重，GLM-5 涨 11.5。
 - 示例源码：[costa92/blog-example/harness2-demo](https://github.com/costa92/blog-example/tree/master/harness2-demo)。
 - Harness² 固定在 commit `1cfe254e8d25b15f37048c3730134686abe60335`（版本 `0.1.0`）。
 
