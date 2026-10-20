@@ -7,6 +7,6 @@
 | 示例 | 配套文章 | 环境 |
 | --- | --- | --- |
 | [LLM Wiki 知识库起步模板](llm-wiki-starter/) | [从资料入库到可追溯问答](https://costalong.com/2026/10/15/llm-wiki-practical-cases/) | Python 3.9+，仅标准库 |
-| [Harness² 离线 demo 复现](harness2-demo/) | DeepSeek 跑 Harness²：自我进化改了脚本 | Linux，git，uv |
+| [Harness² 离线 demo 复现](harness2-demo/) | DeepSeek 跑 Harness²：一步从 6.8% 到 27.3% | Linux，git，uv |
 
 示例包含 Kubernetes 探针排障与搜索后端决策追踪两个教学案例，以及资料、知识页、维护规则和链接检查脚本。运行方法见各示例目录的 README。

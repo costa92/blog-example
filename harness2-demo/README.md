@@ -2,7 +2,7 @@
 
 复现谷歌开源的 [Harness²](https://github.com/google-research/harness2) 自带离线 demo，并对文章里的实测结论逐条做断言。demo 的编辑器和选择器是 Harness² 仓库里写死的脚本，不调用任何模型，不需要凭证。
 
-- 配套文章：DeepSeek 跑 Harness²：自我进化改了脚本。
+- 配套文章：DeepSeek 跑 Harness²：一步从 6.8% 到 27.3%。
 - 示例源码：[costa92/blog-example/harness2-demo](https://github.com/costa92/blog-example/tree/master/harness2-demo)。
 - Harness² 固定在 commit `1cfe254e8d25b15f37048c3730134686abe60335`（版本 `0.1.0`）。
 
@@ -62,6 +62,33 @@ EXECUTOR_KEY_ENV=Z_AI_API_KEY ./run_agent.sh
 - ledger-2 的三个编辑会话共读取经验库文件 24 次，采纳的脚本与 ledger-1 的逐字节相同；
 - 工具调用次数：ledger-1 从 8 次变成 12 次，ledger-2 从 9 次变成 5 次；
 - 耗时约 19 分钟，花费约 1.7 元，编辑器输入 976,568 tokens，约为执行器的 11 倍。
+
+## 用 DeepSeek 跑 JobBench，对照论文
+
+论文的 GLM-5 数据来自 Vertex AI 上的模型。WorkBuddy-Bench 的安装脚本只接 Vertex Gemini，JobBench 允许另配裁判接口，所以这里用 Harness² 自带的 JobBench 适配器，执行器 `deepseek-flash`，编辑器和裁判 `deepseek-v4-pro`，k=1 并行模式，只跑一个领域的第一道题。
+
+```bash
+./run.sh                                  # 先准备 Harness² 环境
+export DEEPSEEK_API_KEY=sk-...
+./run_jobbench.sh                         # 默认簿记审计领域；DOMAIN=<领域名> 可换
+```
+
+首次运行会执行 `harness2-setup jb`，从源码构建固定版本的 OpenCode 并下载 JobBench 数据集（65 道题）。脚本把 `HOME` 和 OpenCode 配置目录指到 `.work/` 下的独立目录，避免加载本机的插件和技能，并关闭 webfetch 与 websearch。这挡不住执行器用 curl 联网，要防评分标准泄漏，需要在网络层封掉 `huggingface.co` 等域名。
+
+`harness2-judge` 只评采纳版和参照执行，`jobbench/judge_candidates.py` 补评 inv1、dom1 两个候选。裁判结果按运行缓存在 `eval_result/`，删掉才会重新调用模型。
+
+2026-10-20 簿记审计 task1 的结果（加权分，满分 88）：
+
+| 执行 | 各次评分 |
+|---|---|
+| base1（参照执行） | 6、6 |
+| inv1 | 34、52、34 |
+| dom1 | 24、24、14 |
+| agg1（采纳） | 24、24 |
+
+- 参照执行 6.8% → 采纳版 27.3%；论文 GLM-5 · OpenCode 为 20.6 → 24.2（34 题 × 3 次，编辑器与裁判为 Opus 4.8），单题单次只能比方向；
+- 参照执行编造了 AP 明细账，inv1 用搜索引擎从 excelx.com 下载了真实文件，编辑器却把 inv1 的数据记成编造，合成版没有去取文件；
+- 一步改进约 10.4 元（参照执行 20 分钟、两个候选并行 12 分钟、合成版 9 分钟），裁判每评一次约 0.9 元。
 
 ## 清理
 
